@@ -19,6 +19,7 @@ uniform vec2 uvScale;
 
 out highp vec2 fragUV;
 out mediump vec4 vertColor;
+out mediump vec3 vertPos;
 
 void main() {
   mat4 mMatrix = umMatrix;
@@ -61,4 +62,6 @@ void main() {
     fragUV = fragUV + uvOffset;
   }
   vertColor = vColor;
+
+  vertPos = pos;
 }

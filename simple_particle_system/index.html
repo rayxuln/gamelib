@@ -16,6 +16,7 @@
   <script src="https://unpkg.com/element-ui/lib/index.js"></script>
 
   <!-- Spector -->
+  <!-- 用于调试webgl -->
   <!-- <script type="text/javascript" src="https://spectorcdn.babylonjs.com/spector.bundle.js"></script> -->
 
   <!-- Webgl Debug  -->
@@ -25,34 +26,38 @@
 <body>
   <div id="vue-ui">
     <el-container class="main-container">
-      <el-aside id="input-aside" width="300px">
+      <el-aside v-if="ps.enable" id="input-aside" width="300px">
         <div class="input-container">
           <div class="input-container-item">
-            Particle Count:
+            操作:
+            <el-button type="primary" round @click="onExportJSClicked">导出JS代码</el-button>
+          </div>
+          <div class="input-container-item">
+            粒子数量 (Particle Count):
             <el-slider v-model="ps.count" :min="0" :max="10000" :step="1" input-size="mini" show-input>
             </el-slider>
           </div>
           <div class="input-container-item">
-            Explosiveness:
+            爆炸性 (Explosiveness):
             <el-slider v-model="ps.explosive" :min="0" :max="1" :step="0.01" input-size="mini" show-input>
             </el-slider>
           </div>
           <div class="input-container-item">
-            Life (seconds):
+            生命周期(单位:秒) (Life (seconds)):
             <el-slider v-model="ps.life" :min="0" :max="60" :step="0.1" input-size="mini" show-input>
             </el-slider>
           </div>
           <div class="input-container-item">
-            Life Randomness:
+            生命周期随机性 (Life Randomness):
             <el-slider v-model="ps.lifeRandomness" :min="0" :max="1" :step="0.01" input-size="mini" show-input>
             </el-slider>
           </div>
           <div class="input-container-item">
-            Emission Shape:
+            发射形状 (Emission Shape):
             <el-collapse>
               <el-collapse-item>
                 <template slot="title">
-                  <el-select v-model="ps.emitShape.value" placeholder="Choose the emission shape.">
+                  <el-select v-model="ps.emitShape.value" placeholder="选择发射形状">
                     <el-option
                       v-for="item in ps.emitShape.options"
                       :key="item.value"
@@ -62,50 +67,93 @@
                   </el-select>
                 </template>
 
-                <!-- Point -->
+                <!-- Point点型 -->
                 <div v-if="ps.emitShape.value===0" class="input-container">
-                  Nothing.
+                  无
                 </div>
 
-                <!-- Sphere -->
+                <!-- Sphere球型 -->
                 <div v-if="ps.emitShape.value===1" class="input-container">
                   <div class="input-container-item">
-                    Radius:
+                    半径 (Radius):
                     <el-slider v-model="ps.emitShape.sphere" :min="0" :max="10" :step="0.1" input-size="mini" range>
                     </el-slider>
                   </div>
                 </div>
 
-                <!-- Box -->
+                <!-- Box盒型 -->
                 <div v-if="ps.emitShape.value===2" class="input-container">
                   <div class="input-container-item">
-                    Width:
+                    宽度 (Width):
                     <el-slider v-model="ps.emitShape.box.w" :min="0" :max="10" :step="0.1" input-size="mini">
                     </el-slider>
                   </div>
                   <div class="input-container-item">
-                    height:
+                    高度 (height):
                     <el-slider v-model="ps.emitShape.box.h" :min="0" :max="10" :step="0.1" input-size="mini">
                     </el-slider>
                   </div>
                   <div class="input-container-item">
-                    Length:
+                    长度 (Length):
                     <el-slider v-model="ps.emitShape.box.l" :min="0" :max="10" :step="0.1" input-size="mini">
                     </el-slider>
                   </div>
                 </div>
 
-                <!-- Cylinder -->
+                <!-- Cylinder柱形 -->
                 <div v-if="ps.emitShape.value===3" class="input-container">
                   <div class="input-container-item">
-                    Radius:
+                    半径 (Radius):
                     <el-slider v-model="ps.emitShape.cylinder.r" :min="0" :max="10" :step="0.1" input-size="mini" range>
                     </el-slider>
                   </div>
                   <div class="input-container-item">
-                    height:
+                    高度 (height):
                     <el-slider v-model="ps.emitShape.cylinder.h" :min="0" :max="10" :step="0.1" input-size="mini">
                     </el-slider>
+                  </div>
+                </div>
+
+                <!-- Points点数组 -->
+                <div v-if="ps.emitShape.value===4" class="input-container">
+                  <div class="input-container-item">
+                    点贴图 (用于生成点坐标数组):
+                    <image-editor :texture-list="textureList" :current-index="ps.emitShape.points.textureIndex" @current-index-changed="ps.emitShape.points.textureIndex=$event" @request-add-image="onRequestAddImage"></image-editor>
+                  </div>
+                  <div class="input-container-item">
+                    像素单位 (Pixel Per Unit):
+                    <el-input-number
+                      :controls="false"
+                      size="small"
+                      placeholder="单位每像素"
+                      v-model="ps.emitShape.points.pixelUnit">
+                    </el-input-number>
+                  </div>
+                  <div class="input-container-item">
+                    坐标偏移 (Offset):
+                    <vector-2-editor v-model="ps.emitShape.points.offset">
+                    </vector-2-editor>
+                  </div>
+                  <div class="input-container-item">
+                    透明度阈值 (Alpha Threshold):
+                    <el-slider v-model="ps.emitShape.points.alphaThreshold" :min="0" :max="1" :step="0.01" input-size="mini" show-input>
+                    </el-slider>
+                  </div>
+                  <div class="input-container-item">
+                    亮度阈值 (Brightness Threshold):
+                    <el-slider v-model="ps.emitShape.points.brightnessThreshold" :min="0" :max="1" :step="0.01" input-size="mini" show-input>
+                    </el-slider>
+                  </div>
+                  <div class="input-container-item">
+                    2D平面:
+                    <el-select v-model="ps.emitShape.points.axis.value" placeholder="选择2D平面">
+                      <el-option
+                        v-for="item in ps.emitShape.points.axis.options"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value">
+                      </el-option>
+                    </el-select>
                   </div>
                 </div>
 
@@ -113,76 +161,178 @@
             </el-collapse>
           </div>
           <div class="input-container-item">
-            Direction:
+            方向 (Direction):
             <vector-3-editor v-model="ps.direction">
             </vector-3-editor>
           </div>
           <div class="input-container-item">
-            Directional Spread:
+            方向随机度 (Directional Spread):
             <el-slider v-model="ps.spread" :min="0" :max="180" :step="0.1" input-size="mini" show-input>
             </el-slider>
           </div>
           <div class="input-container-item">
-            Gravity:
+            重力加速度 (Gravity):
             <vector-3-editor v-model="ps.gravity">
             </vector-3-editor>
           </div>
           <div class="input-container-item">
-            Angle:
+            自旋转角度 (Angle):
             <el-slider v-model="ps.angle" :min="0" :max="360" :step="0.1" input-size="mini" range>
             </el-slider>
           </div>
           <div class="input-container-item">
-            Scale: <el-switch v-model="ps.scaleVariantFunction.enable"></el-switch>
+            缩放 (Scale): <el-switch v-model="ps.scaleVariantFunction.enable"></el-switch>
             <el-slider v-model="ps.scale" :min="0" :max="10" :step="0.1" input-size="mini" range>
             </el-slider>
             <variant-function-editor v-if="ps.scaleVariantFunction.enable" v-model="ps.scaleVariantFunction"></variant-function-editor>
           </div>
           <div class="input-container-item">
-            Color: <el-switch v-model="ps.colorVariantFunction.enable"></el-switch>
+            颜色 (Color): <el-switch v-model="ps.colorVariantFunction.enable"></el-switch>
             <color-editor v-model="ps.color"></color-editor>
-            <variant-function-editor v-if="ps.colorVariantFunction.enable" v-model="ps.colorVariantFunction"></variant-function-editor>
+            <variant-function-editor v-if="ps.colorVariantFunction.enable" gradient v-model="ps.colorVariantFunction"></variant-function-editor>
           </div>
           <div class="input-container-item">
-            Damping: <el-switch v-model="ps.dampingVariantFunction.enable"></el-switch>
+            速度减小速率 (Damping): <el-switch v-model="ps.dampingVariantFunction.enable"></el-switch>
             <el-slider v-model="ps.damping" :min="-2" :max="2" :step="0.01" input-size="mini" range>
             </el-slider>
             <variant-function-editor v-if="ps.dampingVariantFunction.enable" v-model="ps.dampingVariantFunction"></variant-function-editor>
           </div>
           <div class="input-container-item">
-            Linear Velocity:
+            线性速度 (Linear Velocity):
             <el-slider v-model="ps.linearVelocity" :min="-100" :max="100" :step="0.1" input-size="mini" range>
             </el-slider>
           </div>
           <div class="input-container-item">
-            Angular Velocity: <el-switch v-model="ps.angularVelocityVariantFunction.enable"></el-switch>
-            <el-slider v-model="ps.angularVelocity" :min="-180" :max="180" :step="0.1" input-size="mini" range>
+            自旋转速度 (Angular Velocity): <el-switch v-model="ps.angularVelocityVariantFunction.enable"></el-switch>
+            <el-slider v-model="ps.angularVelocity" :min="-360" :max="360" :step="0.1" input-size="mini" range>
             </el-slider>
             <variant-function-editor v-if="ps.angularVelocityVariantFunction.enable" v-model="ps.angularVelocityVariantFunction"></variant-function-editor>
           </div>
           <div class="input-container-item">
-            Linear Acceleration: <el-switch v-model="ps.linearAccelerationVariantFunction.enable"></el-switch>
+            线性加速度 (Linear Acceleration): <el-switch v-model="ps.linearAccelerationVariantFunction.enable"></el-switch>
             <el-slider v-model="ps.linearAcceleration" :min="-100" :max="100" :step="0.1" input-size="mini" range>
             </el-slider>
             <variant-function-editor v-if="ps.linearAccelerationVariantFunction.enable" v-model="ps.linearAccelerationVariantFunction"></variant-function-editor>
           </div>
           <div class="input-container-item">
-            Radial Acceleration: <el-switch v-model="ps.radialAccelerationVariantFunction.enable"></el-switch>
+            离心加速度 (Radial Acceleration): <el-switch v-model="ps.radialAccelerationVariantFunction.enable"></el-switch>
             <el-slider v-model="ps.radialAcceleration" :min="-100" :max="100" :step="0.1" input-size="mini" range>
             </el-slider>
             <variant-function-editor v-if="ps.radialAccelerationVariantFunction.enable" v-model="ps.radialAccelerationVariantFunction"></variant-function-editor>
           </div>
           <div class="input-container-item">
-            Tangential Acceleration: <el-switch v-model="ps.tangentialAccelerationVariantFunction.enable"></el-switch>
+            切向加速度 (Tangential Acceleration): <el-switch v-model="ps.tangentialAccelerationVariantFunction.enable"></el-switch>
             <el-slider v-model="ps.tangentialAcceleration" :min="-100" :max="100" :step="0.1" input-size="mini" range>
             </el-slider>
             <variant-function-editor v-if="ps.tangentialAccelerationVariantFunction.enable" v-model="ps.tangentialAccelerationVariantFunction"></variant-function-editor>
           </div>
           <div class="input-container-item">
-            Orbital Velocity: <el-switch v-model="ps.orbitalVelocityVariantFunction.enable"></el-switch>
+            环绕角速度 (Orbital Velocity): <el-switch v-model="ps.orbitalVelocityVariantFunction.enable"></el-switch>
             <el-slider v-model="ps.orbitalVelocity" :min="-100" :max="100" :step="0.1" input-size="mini" range>
             </el-slider>
             <variant-function-editor v-if="ps.orbitalVelocityVariantFunction.enable" v-model="ps.orbitalVelocityVariantFunction"></variant-function-editor>
+          </div>
+          <div class="input-container-item">
+            纹理贴图 (texture):
+            <image-editor :texture-list="textureList" :current-index="ps.particleTextureIndex" @current-index-changed="ps.particleTextureIndex=$event" @request-add-image="onRequestAddImage"></image-editor>
+          </div>
+          <div class="input-container-item">
+            动画帧行数 (Animation VFrames):
+            <el-slider v-model="ps.animationParams.vFrames" :min="0" :max="200" :step="1" input-size="mini" show-input>
+            </el-slider>
+          </div>
+          <div class="input-container-item">
+            动画帧列数 (Animation HFrames):
+            <el-slider v-model="ps.animationParams.hFrames" :min="0" :max="200" :step="1" input-size="mini" show-input>
+            </el-slider>
+          </div>
+          <div class="input-container-item">
+            动画速率 (Animation FPS):
+            <el-slider v-model="ps.animationParams.fps" :min="0" :max="120" :step="0.1" input-size="mini" show-input>
+            </el-slider>
+          </div>
+          <div class="input-container-item">
+            动画帧范围 (Animation Frame Range):
+            <el-slider v-model="ps.animationParams.frameRange" :min="0" :max="Math.max(ps.animationParams.hFrames, 1) * Math.max(ps.animationParams.vFrames, 1) - 1" :step="1" input-size="mini" range>
+            </el-slider>
+          </div>
+          <div class="input-container-item">
+            随机动画帧 (Random Animation Frame): 
+            <el-switch v-model="ps.animationParams.enableRandomFrame"></el-switch>
+          </div>
+          <div class="input-container-item">
+            像素单位 (Pixel Per Unit):
+            <el-input-number
+              :controls="false"
+              size="small"
+              placeholder="单位每像素"
+              v-model="ps.renderer.pixelUnit">
+            </el-input-number>
+          </div>
+          <div class="input-container-item">
+            混合模式 (Blend Mode):
+            <el-select v-model="ps.renderer.blendMode.value" placeholder="选择混合模式">
+              <el-option
+                v-for="item in ps.renderer.blendMode.options"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value">
+              </el-option>
+            </el-select>
+          </div>
+          <div class="input-container-item">
+            公告板模式 (Billboard Mode): 
+            <el-switch v-model="ps.renderer.enableBillboardMode"></el-switch>
+          </div>
+          <div class="input-container-item">
+            <el-collapse>
+              <el-collapse-item>
+                <template slot="title">
+                  目标点模式: 
+                  <el-switch v-model="ps.targetPoints.enable"></el-switch>
+                </template>
+
+                <div class="input-container-item">
+                  点贴图 (用于生成目标点坐标数组):
+                  <image-editor :texture-list="textureList" :current-index="ps.targetPoints.textureIndex" @current-index-changed="ps.targetPoints.textureIndex=$event" @request-add-image="onRequestAddImage"></image-editor>
+                </div>
+                <div class="input-container-item">
+                  像素单位 (Pixel Per Unit):
+                  <el-input-number
+                    :controls="false"
+                    size="small"
+                    placeholder="单位每像素"
+                    v-model="ps.targetPoints.pixelUnit">
+                  </el-input-number>
+                </div>
+                <div class="input-container-item">
+                  坐标偏移 (Offset):
+                  <vector-2-editor v-model="ps.targetPoints.offset">
+                  </vector-2-editor>
+                </div>
+                <div class="input-container-item">
+                  透明度阈值 (Alpha Threshold):
+                  <el-slider v-model="ps.targetPoints.alphaThreshold" :min="0" :max="1" :step="0.01" input-size="mini" show-input>
+                  </el-slider>
+                </div>
+                <div class="input-container-item">
+                  亮度阈值 (Brightness Threshold):
+                  <el-slider v-model="ps.targetPoints.brightnessThreshold" :min="0" :max="1" :step="0.01" input-size="mini" show-input>
+                  </el-slider>
+                </div>
+                <div class="input-container-item">
+                  2D平面:
+                  <el-select v-model="ps.targetPoints.axis.value" placeholder="选择2D平面">
+                    <el-option
+                      v-for="item in ps.targetPoints.axis.options"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value">
+                    </el-option>
+                  </el-select>
+                </div>
+              </el-collapse-item>
+            </el-collapse>
           </div>
         </div>
       </el-aside>
