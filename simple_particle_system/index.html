@@ -6,21 +6,14 @@
   <title>Simple Partical System</title>
   <link rel="stylesheet" type="text/css" href="css/style.css" />
 
-  <!-- Vue UI -->
+  <!-- Vue UI 前端框架 -->
   <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
 
-  <!-- Element UI Lib -->
+  <!-- Element UI 用户交互界面组件库 -->
   <!-- 引入样式 -->
   <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
   <!-- 引入组件库 -->
   <script src="https://unpkg.com/element-ui/lib/index.js"></script>
-
-  <!-- Spector -->
-  <!-- 用于调试webgl -->
-  <!-- <script type="text/javascript" src="https://spectorcdn.babylonjs.com/spector.bundle.js"></script> -->
-
-  <!-- Webgl Debug  -->
-  <!-- <script src="/js/lib/webgl-debug-tool/webgl_debug.js"></script> -->
 </head>
 
 <body>
@@ -358,7 +351,6 @@
       <el-main>
         <div>FPS: {{ fps }} <br> {{ msg }}</div>
         <div class="viewer-container">
-          <!-- <canvas id="viewer" width="1280" height="800" tabindex="-1"></canvas> -->
           <canvas id="viewer" tabindex="-1"></canvas>
         </div>
         <div v-html="particaleSystemMessage"></div>
